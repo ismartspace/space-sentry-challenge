@@ -9,9 +9,77 @@ var moveTiltUp = false;
 var moveTiltDown = false;
 var gameStarted = false;
 var websocket = null;
+var gamerControl = false;
 var websocket_url = null;
 window.addEventListener('keyup', arrowUp)
 window.addEventListener('keydown', arrowDown)
+
+history.pushState(null, null, location.href);
+    window.onpopstate = function () {
+        history.go(1);
+    };
+
+var direction,
+    movingTimeout = -1,
+    FPS = 25;
+
+function stopMoving() {
+  clearTimeout(movingTimeout);
+  movingTimeout = -1;
+}
+
+function startMoving(direction) {
+  if (movingTimeout === -1) {      
+    loop(direction);
+  }
+}
+
+function loop(direction) {
+  move(direction);
+  movingTimeout = setTimeout(loop, 1000 / FPS, direction);
+}
+
+function move(direction) {
+ console.log(gamerControl);
+ if (gamerControl){
+  moveShip(direction);
+ }
+}
+
+function moveShip(direction) {
+  console.log("moveShip")
+  var cmd = "";
+  if (direction == "left") {
+    console.log("Moving Left...");
+    cmd = "HL";
+  } 
+  else if (direction == "right") {
+    console.log("Moving Right...");
+    cmd = "HR";
+  } else if (direction == "up") {
+    console.log("Moving Up...");
+    cmd = "VU";
+  } else if (direction == "down") {
+    console.log("Moving Down...");
+    cmd = "VD";
+  } else if (direction == "leftFast") {
+    console.log("Moving Left Fast...");
+    cmd = "H2L";
+  } else if (direction == "rightFast") {
+    console.log("Moving Right Fast...");
+    cmd = "H2R";
+  } else if (direction == "upFast") {
+    console.log("Moving Up Fast...");
+    cmd = "V2U";
+  } else if (direction == "downFast") {
+    console.log("Moving Down Fast...");
+    cmd = "V2D";
+  }else {
+    // Do nothing
+  }
+  sendSocket(cmd);
+
+}
 
 $("#fireLaser").click(function() {
   /*  if (!beamToggle) {
@@ -102,25 +170,55 @@ function stopGameFail() {
 // Keyboard action
 function arrowDown(e) {
   e.preventDefault();
+  console.log(e.which);
   if (e.which == 32) {
     const key = document.querySelector(`.fire-key[data-key="${e.which}"]`);
     key.classList.add('press');
-  } else {
-    const key = document.querySelector(`.arrow-key[data-key="${e.which}"]`);
-    key.classList.add('press');
+  } else if (e.which == 37 || e.which == 65){
+      const key = document.querySelector(`.arrow-key[data-key="37"]`);
+      key.classList.add('press');
+  } else if (e.which == 39 || e.which == 68){
+      const key = document.querySelector(`.arrow-key[data-key="39"]`);
+      key.classList.add('press');
+  } else if (e.which == 38 || e.which == 87){
+      const key = document.querySelector(`.arrow-key[data-key="38"]`);
+      key.classList.add('press');
+  } else if (e.which == 40 || e.which == 83){
+      const key = document.querySelector(`.arrow-key[data-key="40"]`);
+      key.classList.add('press');
   }
   if (e.which == 37) {
     //console.log("Keyboard - Moving left!!");
+    startMoving("left");
     movePanLeft = true;
   } else if (e.which == 39) {
+    startMoving("right");
     //console.log("Keyboard - Moving right!!");
     movePanRight = true;
   } else if (e.which == 38) {
+    startMoving("up");
     //console.log("Keyboard - Moving up!!");
-	moveTiltUp = true;
+	  moveTiltUp = true;
   } else if (e.which == 40) {
     //console.log("Keyboard - Moving down!!");
-	moveTiltDown = true;
+    startMoving("down");
+	  moveTiltDown = true;
+  } else if (e.which == 65) {
+    //console.log("Keyboard - Moving left!!");
+    startMoving("leftFast");
+    movePanLeft = true;
+  } else if (e.which == 68) {
+    startMoving("rightFast");
+    //console.log("Keyboard - Moving right!!");
+    movePanRight = true;
+  } else if (e.which == 87) {
+    startMoving("upFast");
+    //console.log("Keyboard - Moving up!!");
+    moveTiltUp = true;
+  } else if (e.which == 83) {
+    //console.log("Keyboard - Moving down!!");
+    startMoving("downFast");
+    moveTiltDown = true;
   }
 }
 
@@ -139,21 +237,29 @@ function arrowUp(e) {
       toggleBeamOn();
       beamToggle = false;
     }*/
-  } else {
-    const key = document.querySelector(`.arrow-key[data-key="${e.which}"]`);
-    key.classList.remove('press');
+  } else if (e.which == 37 || e.which == 65){
+      const key = document.querySelector(`.arrow-key[data-key="37"]`);
+      key.classList.remove('press');
+  } else if (e.which == 39 || e.which == 68){
+      const key = document.querySelector(`.arrow-key[data-key="39"]`);
+      key.classList.remove('press');
+  } else if (e.which == 38 || e.which == 87){
+      const key = document.querySelector(`.arrow-key[data-key="38"]`);
+      key.classList.remove('press');
+  } else if (e.which == 40 || e.which == 83){
+      const key = document.querySelector(`.arrow-key[data-key="40"]`);
+      key.classList.remove('press');
   }
   console.log("MoveRight=" + movePanRight + " MoveLeft=" + movePanLeft + " MoveUp=" + moveTiltUp + " MoveDown=" + moveTiltDown);
   if (e.which == 37 || e.which == 39) {
-	  panShip();
 	  //setTimeout(panShip, 250);
   } else if (e.which == 38 || e.which == 40) {
-	  tiltShip();
 	  //setTimeout(tiltShip, 250);
   } else if (e.which == 32) {
 	  laserSound.play();
 	  fireLaser();
   }
+  stopMoving();
 }
 
 function toggleBeamOn() {
@@ -182,36 +288,10 @@ function toggleBeamOff() {
   laserSound.play();
 }
 
-function tiltShip() {
-  if (moveTiltUp) {
-	  console.log("Moving Up...");
-	  sendSocket("VU");
-	  moveTiltUp = false;
-  } 
-  else if (moveTiltDown) {
-	  console.log("Moving Down...");
-	  sendSocket("VD");
-	  moveTiltDown = false;
-  } else {
-	  // Do nothing
-  }
-}
 
 
-function panShip() {
-  if (movePanLeft) {
-	  console.log("Moving Left...");
-	  sendSocket("HL");
-	  movePanLeft = false;
-  } 
-  else if (movePanRight) {
-	  console.log("Moving Right...");
-	  sendSocket("HR");
-	  movePanRight = false;
-  } else {
-	  // Do nothing
-  }
-}
+
+
 
 function updateScore(event) {
   console.log("EVENT DATA: " + event.data);
@@ -265,12 +345,15 @@ function runTimer() {
 function pageRedirect() {
   setTimeout(function() {
   window.location.href = "results.html";
-  }, 2000);
+  }, 0);
 }
 
 function fireLaser() {
   console.log("FIRE!");
+ if (gamerControl){
   sendSocket("fireLaser");
+ }
+  
 }
 
 /**********************************************************
@@ -346,6 +429,7 @@ printToTerminal();
 
 function printToTerminal() {
   $("#gameShow").hide();
+  gamerControl = false;
   // Start WebSocket
   init('localhost:9081/liberty-demo-game/shipsocket');
   gameStarted = true;
@@ -367,6 +451,7 @@ function printToTerminal() {
 function showGameBoard() {
   $("#terminalShow").hide();
   $("#gameShow").show();
+  gamerControl = true;
 }
 
 /***********************************************************
@@ -398,6 +483,7 @@ function sendSocket(payload) {
     websocket.onopen = function(event) {
       console.log("Connection established!");
       // Start the Space Ship
+      
       if (gameStarted)
         sendSocket("startShip");
     }

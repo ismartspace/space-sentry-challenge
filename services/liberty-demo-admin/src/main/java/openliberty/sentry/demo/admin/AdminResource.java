@@ -1,3 +1,14 @@
+/*******************************************************************************
+ * Copyright (c) 2019 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
 package openliberty.sentry.demo.admin;
 
 import java.io.IOException;
@@ -143,8 +154,10 @@ public class AdminResource {
         TargetArray targets = TargetArray.getInstance();
         Ship spaceShip = Ship.getInstance();
         try {
-            targets.disconnect();
-            spaceShip.disconnect();
+        	if (targets != null)
+        		targets.disconnect();
+        	if (spaceShip != null)
+        		spaceShip.disconnect();
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
